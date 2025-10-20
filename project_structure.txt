@@ -1,0 +1,176 @@
+multimodal-chat-assistant/
+│
+├── backend/
+│   ├── app/
+│   │   ├── main.py                   # FastAPI entrypoint
+│   │   ├── routers/                  # API route handlers
+│   │   │   ├── auth.py               # /auth/me (verify JWT - mock)
+│   │   │   ├── chat.py               # /chat (text multi-turn)
+│   │   │   ├── image.py              # /image_chat (image Q&A)
+│   │   │   └── csv.py                # /csv_chat (CSV upload/URL Q&A)
+│   │   ├── services/                 # business logic layer
+│   │   │   ├── chat_service.py
+│   │   │   ├── image_service.py
+│   │   │   └── csv_service.py
+│   │   ├── utils/                    # helper functions (JWT, plots, etc.)
+│   │   │   ├── jwt_verify.py
+│   │   │   └── plots.py
+│   │   └── models/
+│   │       └── dto.py                # Pydantic DTOs (request/response)
+│   ├── requirements.txt              # all pinned Python dependencies
+│   ├── .env.example                  # environment variables template
+│   ├── .gitignore                    # ignore venv, __pycache__, .env, etc.
+│   └── README.md                     # backend usage guide (optional)
+│
+├── frontend/
+│   ├── src/
+│   │   ├── pages/                    # Next.js pages (or app/)
+│   │   ├── components/               # UI components
+│   │   │   ├── ChatBox.tsx           # Text chat interface
+│   │   │   ├── ImageUpload.tsx       # Image upload + preview + Q&A
+│   │   │   └── CsvPanel.tsx          # CSV upload/URL + prompt input
+│   │   └── lib/                      # utility modules
+│   │       ├── api.ts                # axios client (uses .env base URL)
+│   │       └── supabase.ts           # placeholder for future DB integration
+│   ├── public/                       # static assets
+│   ├── package.json
+│   ├── tailwind.config.js
+│   ├── postcss.config.js
+│   ├── tsconfig.json
+│   ├── .env.local.example            # environment template for frontend
+│   ├── .gitignore
+│   └── README.md                     # frontend usage guide (optional)
+│
+├── .gitignore                        # global ignore (node_modules, .venv, etc.)
+├── README.md                         # root project overview & setup guide
+
+
+
+
+
+
+
+
+
+You are a senior backend/full-stack engineer helping me bootstrap a small assignment project. 
+Act with strong ownership: produce a clean, minimal, production-minded scaffold that I can copy into files directly. 
+Do not ask clarifying questions—make best assumptions and proceed.
+
+# CONTEXT
+- Goal: Build a tiny **multi-modal chat app** (text multi-turn, image caption Q&A, CSV Q&A). 
+- Hard deadline: 23:59, Oct 23, 2025. I need fast setup first, coding later.
+- For now: **ONLY environment + project structure & minimal runnable skeleton**. I will wire the database later.
+- Priorities: backend-heavy signal (FastAPI), clean interfaces, readable code, .env separation, error handling stubs, logging.
+- Budget: $0. Use free/open tooling.
+- OS: Windows 10/11, I’ll run **PowerShell**. Working directory: **Desktop**.
+- Repo name: **multimodal-chat-assistant** (monorepo: `/backend` + `/frontend`).
+
+# TECH CHOICES (FIXED FOR THIS SETUP)
+- Backend: **FastAPI** + Uvicorn, Pydantic v2, httpx, python-multipart, pandas, matplotlib, Pillow, transformers (+ torch-cpu).
+- Frontend: **Next.js + TypeScript** + Tailwind CSS (desktop-first minimal UI).
+- Auth/DB/Storage: **Not connected yet**. Create placeholders only (interfaces, .env examples).
+- No paid APIs. For AI later I’ll use Hugging Face free models (text + image caption). For CSV use pandas/matplotlib.
+
+# WHAT TO PRODUCE (IN ORDER)
+1) **Command script** (PowerShell) to create the repo on Desktop, init folders, and install all deps:
+   - Create `~/Desktop/multimodal-chat-assistant`, `backend/`, `frontend/`.
+   - Python venv (`.venv`) for backend; pip install exact packages; freeze `requirements.txt`.
+   - Init Next.js TypeScript app in `frontend`; add Tailwind; add axios.
+   - `git init`, `.gitignore` for both sides, root README update stub, and npm scripts.
+   - Commands must be copy-pasteable in PowerShell. Use `python -m venv .venv` and `.\.venv\Scripts\Activate.ps1`.
+
+2) A **file/folder tree** of the monorepo with a short one-line description per major file:
+```
+
+multimodal-chat-assistant/
+│
+├── backend/
+│   ├── app/
+│   │   ├── main.py                   # FastAPI entrypoint
+│   │   ├── routers/                  # API route handlers
+│   │   │   ├── auth.py               # /auth/me (verify JWT - mock)
+│   │   │   ├── chat.py               # /chat (text multi-turn)
+│   │   │   ├── image.py              # /image_chat (image Q&A)
+│   │   │   └── csv.py                # /csv_chat (CSV upload/URL Q&A)
+│   │   ├── services/                 # business logic layer
+│   │   │   ├── chat_service.py
+│   │   │   ├── image_service.py
+│   │   │   └── csv_service.py
+│   │   ├── utils/                    # helper functions (JWT, plots, etc.)
+│   │   │   ├── jwt_verify.py
+│   │   │   └── plots.py
+│   │   └── models/
+│   │       └── dto.py                # Pydantic DTOs (request/response)
+│   ├── requirements.txt              # all pinned Python dependencies
+│   ├── .env.example                  # environment variables template
+│   ├── .gitignore                    # ignore venv, __pycache__, .env, etc.
+│   └── README.md                     # backend usage guide (optional)
+│
+├── frontend/
+│   ├── src/
+│   │   ├── pages/                    # Next.js pages (or app/)
+│   │   ├── components/               # UI components
+│   │   │   ├── ChatBox.tsx           # Text chat interface
+│   │   │   ├── ImageUpload.tsx       # Image upload + preview + Q&A
+│   │   │   └── CsvPanel.tsx          # CSV upload/URL + prompt input
+│   │   └── lib/                      # utility modules
+│   │       ├── api.ts                # axios client (uses .env base URL)
+│   │       └── supabase.ts           # placeholder for future DB integration
+│   ├── public/                       # static assets
+│   ├── package.json
+│   ├── tailwind.config.js
+│   ├── postcss.config.js
+│   ├── tsconfig.json
+│   ├── .env.local.example            # environment template for frontend
+│   ├── .gitignore
+│   └── README.md                     # frontend usage guide (optional)
+│
+├── .gitignore                        # global ignore (node_modules, .venv, etc.)
+├── README.md                         # root project overview & setup guide
+
+3) **Exact file contents** (in separate code blocks) for the minimal runnable skeleton:
+- `backend/app/main.py`: FastAPI app with CORS, include routers, `/health` endpoint.
+- `backend/app/routers/*.py`: 
+  - `auth.py`: `/auth/me` route that reads `Authorization: Bearer <token>` and (for now) **mock-verifies** token (no real DB); return a fake `user_id` when header exists; else 401.
+  - `chat.py`: `POST /chat` that accepts `{message}` and returns `{reply: "stub reply"}`; include TODO note for later HuggingFace integration.
+  - `image.py`: `POST /image_chat` that accepts `{imageUrl, question}` and returns `{caption: "stub caption"}`; include TODO note for later caption model.
+  - `csv.py`: `POST /csv_chat` that accepts either `{csvUrl, prompt}` or multipart `csvFile + prompt`; returns simple JSON summary stub; TODO notes for pandas/matplotlib later.
+- `backend/app/services/*.py`: empty service functions with docstrings + TODOs.
+- `backend/app/utils/jwt_verify.py`: function `verify_bearer_or_401(request)` that only checks header shape for now (no real JWKS); returns a dict `{"user_id": "demo-user"}`. Leave TODO for Supabase/Firebase later.
+- `backend/app/utils/plots.py`: helper to turn matplotlib figure into base64 (with docstring + TODO).
+- `backend/app/models/dto.py`: Pydantic models for request/response DTOs (MessageIn, ChatReply, ImageIn, ImageReply, CsvInUrl, CsvInFile, CsvReply).
+- `backend/requirements.txt`: list all packages pinned with reasonable latest stable versions.
+- `backend/.env.example`: keys for future auth/AI; e.g. `API_BASE_URL=http://localhost:8000`, placeholders like `HUGGINGFACE_LOCAL=1`.
+- `backend/.gitignore`: typical Python ignores + `.venv` + `__pycache__` + `.env`.
+- `frontend`:
+  - Minimal Next.js page with a **three-tab layout** (Chat / Image / CSV) and components:
+    - `components/ChatBox.tsx`: textarea + send button + simple message list (local state), calls `POST /chat` via `lib/api.ts`.
+    - `components/ImageUpload.tsx`: file input + preview + question input, calls `/image_chat`.
+    - `components/CsvPanel.tsx`: URL input OR file input + prompt, calls `/csv_chat`; displays text result (and image base64 if present).
+  - `lib/api.ts`: axios instance reading `NEXT_PUBLIC_API_BASE` and attaching a dummy Bearer token from localStorage (mock). TODO: replace with real Supabase/Firebase token later.
+  - Tailwind setup files (`tailwind.config.js`, `postcss.config.js`, `globals.css` or equivalent).
+  - `package.json` with scripts (`dev`, `build`, `start`) and axios dependency.
+  - `.env.local.example` with `NEXT_PUBLIC_API_BASE=http://localhost:8000`.
+  - `.gitignore` (Node).
+
+4) **Two run commands** sections:
+- Backend (PowerShell): activate venv → `uvicorn app.main:app --reload --port 8000`.
+- Frontend: `npm run dev` at `http://localhost:3000`.
+
+5) **README.md (root)** stub contents:
+- Project intro, stack, how to run locally (both sides), .env notes, and “Next steps” checklist:
+  - Integrate real JWT verification (Supabase or Firebase).
+  - Hook HuggingFace models (text gen + image caption).
+  - Implement CSV analysis with pandas + histogram (base64).
+  - Connect Postgres (Supabase) and move from mock to persistence.
+  - Add error boundaries and loading states.
+
+6) Keep everything concise and copy-pasteable. 
+Each file goes in its own code block labeled with the full relative path comment on the first line, e.g.:
+```py
+# backend/app/main.py
+...file content...
+````
+
+Now generate all outputs in that order.
+

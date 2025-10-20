@@ -1,0 +1,36 @@
+# .gitignore
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.so
+.Python
+
+# Node
+node_modules/
+.next/
+out/
+build/
+
+# Environment
+.env
+.env.local
+*.env
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Testing
+.pytest_cache/
+coverage/
