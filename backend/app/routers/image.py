@@ -1,6 +1,10 @@
-from fastapi import APIRouter, HTTPException
-from app.models.dto import ImageIn, ImageReply
-from app.services.image_service import generate_image_caption
+# backend/app/routers/image.py
+"""
+Image router - Upload image and ask questions about it.
+"""
+from fastapi import APIRouter, HTTPException, File, UploadFile, Form
+from app.models.dto import ImageReply
+from app.services.image_service import analyze_image
 import logging
 
 router = APIRouter()
@@ -8,18 +12,33 @@ logger = logging.getLogger(__name__)
 
 
 @router.post("/", response_model=ImageReply)
-async def image_chat_endpoint(image_in: ImageIn):
+async def analyze_image_endpoint(
+    image: UploadFile = File(...),
+    question: str = Form(...)
+):
     """
-    Image caption and Q&A endpoint.
-    
-    TODO: Integrate HuggingFace image captioning model (e.g., BLIP, ViT-GPT2)
-    TODO: Add image validation and size limits
-    TODO: Support base64 encoded images in addition to URLs
+    Upload an image and ask a question about it.
+    Uses Google Gemini Vision for analysis.
     """
     try:
-        logger.info(f"Received image Q&A request: {image_in.question[:30]}...")
-        caption = await generate_image_caption(image_in.imageUrl, image_in.question)
-        return ImageReply(caption=caption, answer=caption)
+        # Read image data
+        image_data = await image.read()
+        
+        logger.info(f"📸 Processing image: {image.filename}, question: {question[:50]}...")
+        
+        # Analyze image
+        result = await analyze_image(image_data, question)
+        
+        logger.info(f"✅ Image analysis complete")
+        
+        return ImageReply(
+            caption=result["caption"],
+            answer=result["answer"]
+        )
+        
     except Exception as e:
-        logger.error(f"Image processing error: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Image processing failed: {str(e)}")
+        logger.error(f"❌ Image analysis error: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Image analysis failed: {str(e)}"
+        )

@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from app.routers import auth, chat, image, csv, history  # Add history
 import logging
 
 from app.routers import auth, chat, image, csv
@@ -31,6 +32,7 @@ app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(chat.router, prefix="/chat", tags=["chat"])
 app.include_router(image.router, prefix="/image", tags=["image"])
 app.include_router(csv.router, prefix="/csv", tags=["csv"])
+app.include_router(history.router, prefix="/history", tags=["history"]) 
 
 
 @app.get("/health")

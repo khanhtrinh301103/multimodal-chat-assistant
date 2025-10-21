@@ -1,47 +1,104 @@
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form
-from typing import Optional
+# backend/app/routers/csv.py
+"""
+CSV router - Upload CSV or provide URL for data analysis.
+"""
+from fastapi import APIRouter, HTTPException, UploadFile, File
 from app.models.dto import CsvInUrl, CsvReply
-from app.services.csv_service import analyze_csv_from_url, analyze_csv_from_file
+from app.services.csv_service import analyze_csv
 import logging
+import httpx
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
 
 @router.post("/url", response_model=CsvReply)
-async def csv_chat_url_endpoint(csv_in: CsvInUrl):
+async def analyze_csv_url(request: CsvInUrl):
     """
-    CSV analysis from URL endpoint.
-    
-    TODO: Implement pandas-based CSV analysis
-    TODO: Generate matplotlib histograms and return as base64
-    TODO: Add natural language query processing for data insights
+    Analyze CSV from a URL.
+    Supports questions like: "Summarize", "Show stats", "Missing values", "Plot histogram"
     """
     try:
-        logger.info(f"Analyzing CSV from URL: {csv_in.csvUrl}")
-        result = await analyze_csv_from_url(csv_in.csvUrl, csv_in.prompt)
-        return result
+        logger.info(f"📊 Fetching CSV from URL: {request.csvUrl}")
+        
+        # Fetch CSV from URL
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.get(str(request.csvUrl))
+            
+            if response.status_code != 200:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Failed to fetch CSV from URL: {response.status_code}"
+                )
+            
+            csv_content = response.text
+        
+        logger.info(f"✅ CSV fetched: {len(csv_content)} characters")
+        
+        # Analyze CSV
+        result = await analyze_csv(csv_content, request.prompt)
+        
+        return CsvReply(
+            summary=result["summary"],
+            plot_base64=result.get("plot_base64")
+        )
+        
+    except httpx.RequestError as e:
+        logger.error(f"❌ Error fetching CSV: {e}")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Failed to fetch CSV: {str(e)}"
+        )
     except Exception as e:
-        logger.error(f"CSV URL analysis error: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"CSV analysis failed: {str(e)}")
+        logger.error(f"❌ CSV analysis error: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"CSV analysis failed: {str(e)}"
+        )
 
 
 @router.post("/file", response_model=CsvReply)
-async def csv_chat_file_endpoint(
+async def analyze_csv_file(
     file: UploadFile = File(...),
-    prompt: str = Form(...)
+    prompt: str = "Summarize this dataset"
 ):
     """
-    CSV analysis from uploaded file endpoint.
-    
-    TODO: Implement file validation (size, type)
-    TODO: Use pandas for data exploration based on prompt
-    TODO: Generate visualizations (histograms, scatter plots) as base64
+    Analyze an uploaded CSV file.
+    Supports questions like: "Summarize", "Show stats", "Missing values", "Plot histogram"
     """
     try:
-        logger.info(f"Analyzing uploaded CSV: {file.filename}")
-        result = await analyze_csv_from_file(file, prompt)
-        return result
+        # Check file extension
+        if not file.filename.endswith('.csv'):
+            raise HTTPException(
+                status_code=400,
+                detail="File must be a CSV file (.csv extension)"
+            )
+        
+        logger.info(f"📊 Processing CSV file: {file.filename}")
+        
+        # Read CSV content
+        content = await file.read()
+        csv_content = content.decode('utf-8')
+        
+        logger.info(f"✅ CSV loaded: {len(csv_content)} characters")
+        
+        # Analyze CSV
+        result = await analyze_csv(csv_content, prompt)
+        
+        return CsvReply(
+            summary=result["summary"],
+            plot_base64=result.get("plot_base64")
+        )
+        
+    except UnicodeDecodeError:
+        logger.error("❌ Invalid CSV encoding")
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid CSV file encoding. Please ensure the file is UTF-8 encoded."
+        )
     except Exception as e:
-        logger.error(f"CSV file analysis error: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"CSV analysis failed: {str(e)}")
+        logger.error(f"❌ CSV analysis error: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"CSV analysis failed: {str(e)}"
+        )

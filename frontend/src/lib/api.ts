@@ -1,8 +1,8 @@
+// frontend/src/lib/api.ts (UPDATE - add these functions)
 import axios from 'axios';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8000';
 
-// Create axios instance with interceptors
 const apiClient = axios.create({
   baseURL: API_BASE,
   timeout: 30000,
@@ -11,10 +11,8 @@ const apiClient = axios.create({
   },
 });
 
-// Add auth token to requests
 apiClient.interceptors.request.use(
   (config) => {
-    // TODO: Replace with real token from Supabase/Firebase
     const token = localStorage.getItem('auth_token') || 'demo-token-12345';
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -24,9 +22,17 @@ apiClient.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Chat API
-export async function sendChatMessage(message: string) {
-  const response = await apiClient.post('/chat/', { message });
+// Chat API with conversation memory
+export async function sendChatMessage(message: string, conversationId: string | null = null) {
+  const response = await apiClient.post('/chat/', {
+    message,
+    conversation_id: conversationId
+  });
+  return response.data;
+}
+
+export async function getChatHistory(conversationId: string) {
+  const response = await apiClient.get(`/chat/history/${conversationId}`);
   return response.data;
 }
 
