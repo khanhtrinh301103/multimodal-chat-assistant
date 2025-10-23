@@ -76,37 +76,3 @@ multimodal-chat-assistant/
 └── README.md                         # Root project overview & setup
 
 
-
-
-
-
-
-
-## Running Locally
-
-### Option A: PowerShell
-```powershell
-# If script execution is restricted, run this first (one-time):
-Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process
-
-# Backend
-cd backend
-.\.venv\Scripts\Activate.ps1
-python -m uvicorn app.main:app --reload --port 8000
-
-# Frontend (new terminal)
-cd frontend
-npm run dev
-```
-
-### Option B: Command Prompt (No restrictions)
-```cmd
-# Backend 
-cd backend
-.venv\Scripts\python.exe -m uvicorn app.main:app --reload --port 8000
-
-# Frontend (new terminal)
-cd frontend
-Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process
-npm run dev
-```

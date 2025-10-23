@@ -2,6 +2,7 @@
 'use client';
 
 import React, { createContext, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation'; // ✅ Add this import
 import { supabase } from '@/lib/supabase';
 import { User as SupabaseUser } from '@supabase/supabase-js';
 import { User } from '@/types/user';
@@ -22,6 +23,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [supabaseUser, setSupabaseUser] = useState<SupabaseUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const router = useRouter(); // ✅ Add this
 
   // Fetch user profile from public.users table
   const fetchUserProfile = async (userId: string): Promise<User | null> => {
@@ -143,15 +145,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Sign out
+  // Sign out - ✅ UPDATED WITH REDIRECT
   const signOut = async () => {
     try {
+      console.log('Signing out...');
+      
+      // Sign out from Supabase
       await supabase.auth.signOut();
+      
+      // Clear state
       setUser(null);
       setSupabaseUser(null);
-      localStorage.removeItem('conversation_id');
+      
+      // Clear storage
+      localStorage.clear();
+      sessionStorage.clear();
+      
+      console.log('Sign out successful, redirecting to /auth');
+      
+      // Redirect to auth page
+      router.push('/auth');
     } catch (error) {
       console.error('Error signing out:', error);
+      alert('Failed to sign out. Please try again.');
     }
   };
 
