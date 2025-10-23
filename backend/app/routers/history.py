@@ -1,5 +1,6 @@
 # backend/app/routers/history.py
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
+from app.utils.jwt_verify import get_current_user
 import logging
 
 router = APIRouter()
@@ -7,10 +8,14 @@ logger = logging.getLogger(__name__)
 
 
 @router.get("/{conversation_id}")
-async def get_conversation_history(conversation_id: str):
+async def get_conversation_history(
+    conversation_id: str,
+    user_id: str = Depends(get_current_user)
+):
     """
     Get all messages for a conversation.
     
+    Requires authentication.
     TODO: Implement database retrieval when Supabase is configured
     """
     try:
@@ -27,10 +32,14 @@ async def get_conversation_history(conversation_id: str):
 
 
 @router.delete("/{conversation_id}")
-async def delete_conversation(conversation_id: str):
+async def delete_conversation(
+    conversation_id: str,
+    user_id: str = Depends(get_current_user)
+):
     """
     Delete a conversation and all its messages.
     
+    Requires authentication.
     TODO: Implement database deletion when Supabase is configured
     """
     try:

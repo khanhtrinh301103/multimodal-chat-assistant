@@ -1,9 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import axios from 'axios';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+import { apiClient } from '@/lib/api'; // Axios client có interceptor gắn JWT tự động
 
 type InputMode = 'url' | 'file';
 
@@ -55,7 +53,7 @@ export default function CsvPanel() {
     setUploadError('');
 
     try {
-      const response = await axios.post(`${API_BASE_URL}/csv/chat/upload-url`, {
+      const response = await apiClient.post('/csv/chat/upload-url', {
         csvUrl: csvUrl,
         prompt: 'I want to analyze this dataset. Please give me an overview.',
       });
@@ -66,14 +64,14 @@ export default function CsvPanel() {
       setShowUpload(false);
 
       // Get initial conversation from backend
-      const sessionResponse = await axios.get(
-        `${API_BASE_URL}/csv/chat/session/${data.session_id}`
+      const sessionResponse = await apiClient.get(
+        `/csv/chat/session/${data.session_id}`
       );
       setMessages(sessionResponse.data.conversation_history);
     } catch (err: any) {
       console.error('Upload error:', err);
       setUploadError(
-        err.response?.data?.detail || 'Failed to upload CSV from URL'
+        err?.response?.data?.detail || 'Failed to upload CSV from URL'
       );
     } finally {
       setIsUploading(false);
@@ -91,13 +89,9 @@ export default function CsvPanel() {
       const formData = new FormData();
       formData.append('file', csvFile);
 
-      const response = await axios.post(
-        `${API_BASE_URL}/csv/chat/upload-file`,
-        formData,
-        {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        }
-      );
+      const response = await apiClient.post('/csv/chat/upload-file', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
 
       const data = response.data;
       setSessionId(data.session_id);
@@ -105,13 +99,13 @@ export default function CsvPanel() {
       setShowUpload(false);
 
       // Get initial conversation from backend
-      const sessionResponse = await axios.get(
-        `${API_BASE_URL}/csv/chat/session/${data.session_id}`
+      const sessionResponse = await apiClient.get(
+        `/csv/chat/session/${data.session_id}`
       );
       setMessages(sessionResponse.data.conversation_history);
     } catch (err: any) {
       console.error('Upload error:', err);
-      setUploadError(err.response?.data?.detail || 'Failed to upload CSV file');
+      setUploadError(err?.response?.data?.detail || 'Failed to upload CSV file');
     } finally {
       setIsUploading(false);
     }
@@ -134,7 +128,7 @@ export default function CsvPanel() {
     setMessages((prev) => [...prev, tempUserMsg]);
 
     try {
-      const response = await axios.post(`${API_BASE_URL}/csv/chat/message`, {
+      const response = await apiClient.post('/csv/chat/message', {
         session_id: sessionId,
         message: userMessage,
       });
@@ -144,10 +138,9 @@ export default function CsvPanel() {
       setMessages(data.conversation_history);
     } catch (err: any) {
       console.error('Send message error:', err);
-      // Add error message
       const errorMsg: Message = {
         role: 'assistant',
-        content: `⚠️ Error: ${err.response?.data?.detail || 'Failed to send message'}`,
+        content: `⚠️ Error: ${err?.response?.data?.detail || 'Failed to send message'}`,
         timestamp: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, errorMsg]);
@@ -285,8 +278,7 @@ export default function CsvPanel() {
                 />
                 {csvFile && (
                   <p className="text-sm text-gray-600 mt-2">
-                    Selected: {csvFile.name} ({(csvFile.size / 1024).toFixed(2)}{' '}
-                    KB)
+                    Selected: {csvFile.name} ({(csvFile.size / 1024).toFixed(2)} KB)
                   </p>
                 )}
               </div>
@@ -295,10 +287,7 @@ export default function CsvPanel() {
             {/* Upload Button */}
             <button
               onClick={mode === 'url' ? handleUploadUrl : handleUploadFile}
-              disabled={
-                isUploading ||
-                (mode === 'url' ? !csvUrl.trim() : !csvFile)
-              }
+              disabled={isUploading || (mode === 'url' ? !csvUrl.trim() : !csvFile)}
               className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium"
             >
               {isUploading ? 'Uploading...' : 'Start Analysis'}
@@ -332,8 +321,7 @@ export default function CsvPanel() {
             <div className="text-6xl mb-4">📊</div>
             <h3 className="text-xl font-semibold mb-2">CSV Data Chat</h3>
             <p className="text-sm">
-              Upload a CSV file or provide a URL to start analyzing your data
-              with AI
+              Upload a CSV file or provide a URL to start analyzing your data with AI
             </p>
           </div>
         )}
@@ -341,21 +329,15 @@ export default function CsvPanel() {
         {messages.map((msg, idx) => (
           <div
             key={idx}
-            className={`flex ${
-              msg.role === 'user' ? 'justify-end' : 'justify-start'
-            }`}
+            className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
           >
             <div
               className={`max-w-[80%] rounded-lg p-4 ${
-                msg.role === 'user'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-900'
+                msg.role === 'user' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-900'
               }`}
             >
               {/* Message Content */}
-              <div className="whitespace-pre-wrap break-words">
-                {msg.content}
-              </div>
+              <div className="whitespace-pre-wrap break-words">{msg.content}</div>
 
               {/* Plot Image */}
               {msg.plot_base64 && (
@@ -418,8 +400,8 @@ export default function CsvPanel() {
             </button>
           </div>
           <p className="text-xs text-gray-500 mt-2">
-            Try: "Show statistics", "Plot histogram of [column]", "What are the
-            top 10 values?", "Find missing values"
+            Try: "Show statistics", "Plot histogram of [column]", "What are the top 10 values?",
+            "Find missing values"
           </p>
         </div>
       )}

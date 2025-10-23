@@ -3,7 +3,7 @@
 Data Transfer Objects (DTOs) for API requests and responses.
 """
 from pydantic import BaseModel, Field, HttpUrl
-from typing import Optional, List
+from typing import Optional, List, Dict
 from datetime import datetime
 
 
@@ -80,6 +80,46 @@ class CsvChatReply(BaseModel):
     reply: str = Field(..., description="AI-generated response")
     plot_base64: Optional[str] = Field(None, description="Base64-encoded plot if generated")
     conversation_history: List[CsvChatMessage] = Field(..., description="Full conversation history")
+
+
+# ============================================
+# IMAGE CHAT DTOs (NEW)
+# ============================================
+
+class ImageChatMessage(BaseModel):
+    """Single message in image chat conversation"""
+    role: str = Field(..., description="Message role: 'user' or 'assistant'")
+    content: str = Field(..., description="Message content")
+    timestamp: str = Field(..., description="Message timestamp (ISO format)")
+
+
+class ImageChatUploadResponse(BaseModel):
+    """Response after image upload - creates new chat session"""
+    session_id: str = Field(..., description="Unique session ID for this image chat")
+    message: str = Field(..., description="Confirmation message")
+    image_info: Dict = Field(..., description="Image information (size, format, etc.)")
+
+
+class ImageChatRequest(BaseModel):
+    """Request for ongoing image conversation"""
+    session_id: str = Field(..., description="Session ID from upload")
+    message: str = Field(..., min_length=1, max_length=2000, description="User's message about the image")
+
+
+class ImageChatReply(BaseModel):
+    """AI response in image conversation"""
+    session_id: str = Field(..., description="Session ID")
+    reply: str = Field(..., description="AI-generated response")
+    conversation_history: List[ImageChatMessage] = Field(..., description="Full conversation history")
+
+
+class ImageSessionInfo(BaseModel):
+    """Information about an image chat session"""
+    session_id: str = Field(..., description="Session ID")
+    filename: str = Field(..., description="Original filename")
+    image_info: Dict = Field(..., description="Image details")
+    message_count: int = Field(..., description="Number of messages in conversation")
+    created_at: str = Field(..., description="Session creation timestamp")
 
 
 # ============================================

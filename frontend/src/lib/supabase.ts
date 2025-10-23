@@ -1,20 +1,19 @@
 // frontend/src/lib/supabase.ts
-/**
- * Supabase client placeholder.
- * 
- * TODO: Install @supabase/supabase-js
- * TODO: Initialize Supabase client with environment variables
- * TODO: Implement auth methods (signUp, signIn, signOut)
- * TODO: Set up database queries for chat history persistence
- * 
- * Example initialization:
- * 
- * import { createClient } from '@supabase/supabase-js'
- * 
- * const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
- * const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
- * 
- * export const supabase = createClient(supabaseUrl, supabaseKey)
- */
+import { createClient } from '@supabase/supabase-js';
 
-export const supabase = null; // Placeholder
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error(
+    'Missing Supabase environment variables. Please check your .env.local file.'
+  );
+}
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true,
+  },
+});

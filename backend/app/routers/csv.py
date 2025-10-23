@@ -2,7 +2,7 @@
 """
 CSV router - Upload CSV or provide URL for data analysis with AI chatbot capabilities.
 """
-from fastapi import APIRouter, HTTPException, UploadFile, File
+from fastapi import APIRouter, HTTPException, UploadFile, File, Depends
 from app.models.dto import (
     CsvInUrl, CsvReply, 
     CsvUploadResponse, CsvChatRequest, CsvChatReply
@@ -13,6 +13,7 @@ from app.services.csv_service import (
     chat_with_csv,
     get_session_info
 )
+from app.utils.jwt_verify import get_current_user
 import logging
 import httpx
 
@@ -22,14 +23,19 @@ logger = logging.getLogger(__name__)
 
 # ============================================
 # ORIGINAL ENDPOINTS (Backward Compatibility)
+# TODO: Scope sessions by user_id when migrating to database
 # ============================================
 
 @router.post("/url", response_model=CsvReply)
-async def analyze_csv_url(request: CsvInUrl):
+async def analyze_csv_url(
+    request: CsvInUrl,
+    user_id: str = Depends(get_current_user)
+):
     """
     Analyze CSV from a URL (single-shot analysis).
     Supports questions like: "Summarize", "Show stats", "Missing values", "Plot histogram"
     
+    Requires authentication.
     Note: Use /chat endpoints for multi-turn conversations.
     """
     try:
@@ -74,12 +80,14 @@ async def analyze_csv_url(request: CsvInUrl):
 @router.post("/file", response_model=CsvReply)
 async def analyze_csv_file(
     file: UploadFile = File(...),
-    prompt: str = "Summarize this dataset"
+    prompt: str = "Summarize this dataset",
+    user_id: str = Depends(get_current_user)
 ):
     """
     Analyze an uploaded CSV file (single-shot analysis).
     Supports questions like: "Summarize", "Show stats", "Missing values", "Plot histogram"
     
+    Requires authentication.
     Note: Use /chat endpoints for multi-turn conversations.
     """
     try:
@@ -125,10 +133,15 @@ async def analyze_csv_file(
 # ============================================
 
 @router.post("/chat/upload-url", response_model=CsvUploadResponse)
-async def upload_csv_url_for_chat(request: CsvInUrl):
+async def upload_csv_url_for_chat(
+    request: CsvInUrl,
+    user_id: str = Depends(get_current_user)
+):
     """
     Upload CSV from URL and start a new chat session.
     Returns session_id for ongoing conversation.
+    
+    Requires authentication.
     
     Example:
     POST /csv/chat/upload-url
@@ -182,11 +195,14 @@ async def upload_csv_url_for_chat(request: CsvInUrl):
 
 @router.post("/chat/upload-file", response_model=CsvUploadResponse)
 async def upload_csv_file_for_chat(
-    file: UploadFile = File(...)
+    file: UploadFile = File(...),
+    user_id: str = Depends(get_current_user)
 ):
     """
     Upload CSV file and start a new chat session.
     Returns session_id for ongoing conversation.
+    
+    Requires authentication.
     
     Example:
     POST /csv/chat/upload-file
@@ -235,10 +251,15 @@ async def upload_csv_file_for_chat(
 
 
 @router.post("/chat/message", response_model=CsvChatReply)
-async def send_chat_message(request: CsvChatRequest):
+async def send_chat_message(
+    request: CsvChatRequest,
+    user_id: str = Depends(get_current_user)
+):
     """
     Send a message in an ongoing CSV chat session.
     AI will respond based on conversation history and CSV data.
+    
+    Requires authentication.
     
     Example:
     POST /csv/chat/message
@@ -279,10 +300,15 @@ async def send_chat_message(request: CsvChatRequest):
 
 
 @router.get("/chat/session/{session_id}")
-async def get_chat_session(session_id: str):
+async def get_chat_session(
+    session_id: str,
+    user_id: str = Depends(get_current_user)
+):
     """
     Get information about a chat session.
     Returns CSV info and conversation history.
+    
+    Requires authentication.
     """
     try:
         session_info = get_session_info(session_id)

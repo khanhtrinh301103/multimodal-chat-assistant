@@ -43,11 +43,16 @@ multimodal-chat-assistant/
 │
 │
 ├── frontend/
+│   ├── .next/
+│   ├── app/
+│   │   ├── page.tsx              # Main page with 3-tab layout
+│   │   ├── layout.tsx            # Root layout
+│   │   └── globals.css           # Tailwind CSS imports
+│   │   └── page.tsx
+│   │
+│   ├── Node_modules/
+│   │
 │   ├── src/
-│   │   ├── app/
-│   │   │   ├── page.tsx              # Main page with 3-tab layout
-│   │   │   ├── layout.tsx            # Root layout
-│   │   │   └── globals.css           # Tailwind CSS imports
 │   │   ├── components/
 │   │   │   ├── ChatBox.tsx           # Text chat interface component
 │   │   │   ├── ImageUpload.tsx       # Image upload + Q&A component
@@ -55,6 +60,8 @@ multimodal-chat-assistant/
 │   │   └── lib/
 │   │       ├── api.ts                # Axios client with auth interceptor
 │   │       └── supabase.ts           # Placeholder for future DB client
+│   │
+│   ├── .env.local.example
 │   ├── public/                       # Static assets
 │   ├── package.json                  # NPM dependencies and scripts
 │   ├── tailwind.config.ts            # Tailwind configuration
@@ -103,5 +110,3 @@ cd frontend
 Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process
 npm run dev
 ```
-
-AIzaSyAhSIMsVP_gV7PRy43ZBwytu7uXqvrU8Wo

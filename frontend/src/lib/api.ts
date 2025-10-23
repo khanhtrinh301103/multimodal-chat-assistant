@@ -1,5 +1,6 @@
-// frontend/src/lib/api.ts (UPDATE - add these functions)
+// frontend/src/lib/api.ts
 import axios from 'axios';
+import { supabase } from './supabase';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8000';
 
@@ -11,9 +12,13 @@ const apiClient = axios.create({
   },
 });
 
+// Interceptor to add Supabase JWT token to all requests
 apiClient.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('auth_token') || 'demo-token-12345';
+  async (config) => {
+    // Get token from Supabase session
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
+    
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -66,3 +71,5 @@ export async function getCurrentUser() {
   const response = await apiClient.get('/auth/me');
   return response.data;
 }
+
+export { apiClient };

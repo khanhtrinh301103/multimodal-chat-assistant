@@ -1,68 +1,255 @@
 # backend/app/services/image_service.py
 """
-Image analysis service using Google Gemini Vision (NEW SDK).
+Image chat service using Claude Sonnet 4.5 Vision API.
+Supports multi-turn conversations about uploaded images.
 """
-from google import genai
+import anthropic
 import os
 import logging
+import base64
 from PIL import Image
 from io import BytesIO
 from dotenv import load_dotenv
+from typing import List, Dict
+from datetime import datetime
+import uuid
 
 load_dotenv()
 logger = logging.getLogger(__name__)
 
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY", "")
+# Claude Sonnet 4.5 configuration
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 
-# Configure Gemini
-if GOOGLE_API_KEY:
-    client = genai.Client(api_key=GOOGLE_API_KEY)
-    logger.info("✅ Gemini Vision client configured")
+if ANTHROPIC_API_KEY:
+    client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+    logger.info("✅ Claude Sonnet 4.5 configured for image chat")
 else:
     client = None
-    logger.warning("⚠️ GOOGLE_API_KEY not configured")
+    logger.warning("⚠️ ANTHROPIC_API_KEY not configured for image chat")
+
+MODEL_NAME = "claude-sonnet-4-5-20250929"  # Fast, excellent vision quality
+MAX_TOKENS = 4096
+
+# In-memory storage for image chat sessions
+# TODO: Replace with database (Redis/PostgreSQL) for production
+image_chat_sessions = {}
 
 
-async def analyze_image(image_data: bytes, question: str) -> dict:
+def get_image_media_type(image_data: bytes) -> str:
     """
-    Analyze image and answer question using Gemini Vision (NEW SDK).
+    Detect image media type from image data.
     """
-    if not client:
-        return {
-            "caption": "Image analysis unavailable",
-            "answer": "⚠️ Google Gemini API key not configured. Please add GOOGLE_API_KEY to your .env file."
-        }
-    
     try:
-        # Open image
         image = Image.open(BytesIO(image_data))
+        format_lower = image.format.lower()
         
-        logger.info(f"🖼️ Analyzing image: {image.size}, question: {question[:50]}...")
+        if format_lower == "jpeg" or format_lower == "jpg":
+            return "image/jpeg"
+        elif format_lower == "png":
+            return "image/png"
+        elif format_lower == "gif":
+            return "image/gif"
+        elif format_lower == "webp":
+            return "image/webp"
+        else:
+            return "image/jpeg"
+    except Exception:
+        return "image/jpeg"
+
+
+async def create_image_chat_session(image_data: bytes, filename: str) -> Dict:
+    """
+    Create a new image chat session with uploaded image.
+    
+    Args:
+        image_data: Raw image bytes
+        filename: Original filename
         
-        # Generate caption
-        caption_response = client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=["Describe this image in one concise sentence.", image]
-        )
-        caption = caption_response.text.strip()
+    Returns:
+        dict with session_id, message, and image_info
+    """
+    try:
+        # Generate unique session ID
+        session_id = str(uuid.uuid4())
         
-        # Answer question
-        answer_response = client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=[f"Based on this image, answer: {question}", image]
-        )
-        answer = answer_response.text.strip()
+        # Get image info
+        image = Image.open(BytesIO(image_data))
+        width, height = image.size
+        format_name = image.format
         
-        logger.info(f"✅ Image analysis complete")
+        # Convert to base64 for storage and API
+        image_base64 = base64.standard_b64encode(image_data).decode("utf-8")
+        media_type = get_image_media_type(image_data)
+        
+        # Store session data
+        image_chat_sessions[session_id] = {
+            "session_id": session_id,
+            "image_base64": image_base64,
+            "media_type": media_type,
+            "filename": filename,
+            "image_info": {
+                "width": width,
+                "height": height,
+                "format": format_name,
+                "size_kb": len(image_data) / 1024
+            },
+            "conversation_history": [],
+            "created_at": datetime.now().isoformat()
+        }
+        
+        logger.info(f"✅ Created image chat session {session_id} for {filename}")
         
         return {
-            "caption": caption,
-            "answer": answer
+            "session_id": session_id,
+            "message": f"Image uploaded successfully! You can now ask questions about this image.",
+            "image_info": {
+                "filename": filename,
+                "width": width,
+                "height": height,
+                "format": format_name,
+                "size_kb": round(len(image_data) / 1024, 2)
+            }
         }
         
     except Exception as e:
-        logger.error(f"❌ Image analysis error: {e}")
+        logger.error(f"❌ Failed to create image chat session: {e}")
+        raise Exception(f"Failed to create image chat session: {str(e)}")
+
+
+async def chat_with_image(session_id: str, user_message: str) -> Dict:
+    """
+    Continue conversation about the uploaded image.
+    
+    Args:
+        session_id: Unique session ID
+        user_message: User's question about the image
+        
+    Returns:
+        dict with reply and conversation history
+    """
+    if not client:
         return {
-            "caption": "Error analyzing image",
-            "answer": f"⚠️ Error: {str(e)}"
+            "reply": "⚠️ Anthropic API key not configured. Please add ANTHROPIC_API_KEY to your .env file.",
+            "conversation_history": []
         }
+    
+    # Check if session exists
+    if session_id not in image_chat_sessions:
+        return {
+            "reply": "⚠️ Session not found. Please upload an image first.",
+            "conversation_history": []
+        }
+    
+    session = image_chat_sessions[session_id]
+    
+    try:
+        logger.info(f"💬 Image chat - Session {session_id[:8]}... - Question: {user_message[:50]}...")
+        
+        # Build conversation history for Claude
+        # First message always includes the image
+        messages = []
+        
+        # Add conversation history (without image in follow-ups to save tokens)
+        for msg in session["conversation_history"]:
+            messages.append({
+                "role": msg["role"],
+                "content": msg["content"]
+            })
+        
+        # Add current user message with image reference
+        # Include image in every request to maintain context
+        current_content = [
+            {
+                "type": "image",
+                "source": {
+                    "type": "base64",
+                    "media_type": session["media_type"],
+                    "data": session["image_base64"],
+                },
+            },
+            {
+                "type": "text",
+                "text": user_message
+            }
+        ]
+        
+        messages.append({
+            "role": "user",
+            "content": current_content
+        })
+        
+        # Call Claude API
+        response = client.messages.create(
+            model=MODEL_NAME,
+            max_tokens=MAX_TOKENS,
+            messages=messages
+        )
+        
+        assistant_reply = response.content[0].text.strip()
+        
+        # Add to conversation history
+        session["conversation_history"].append({
+            "role": "user",
+            "content": user_message,
+            "timestamp": datetime.now().isoformat()
+        })
+        
+        session["conversation_history"].append({
+            "role": "assistant",
+            "content": assistant_reply,
+            "timestamp": datetime.now().isoformat()
+        })
+        
+        logger.info(f"✅ Image chat response generated for session {session_id[:8]}...")
+        
+        return {
+            "reply": assistant_reply,
+            "conversation_history": session["conversation_history"]
+        }
+        
+    except anthropic.RateLimitError as e:
+        logger.error(f"⚠️ Rate limit exceeded: {e}")
+        return {
+            "reply": "⚠️ Rate limit reached (5 requests/min). Please wait a moment and try again.",
+            "conversation_history": session["conversation_history"]
+        }
+    except anthropic.APIError as e:
+        logger.error(f"❌ Anthropic API error: {e}")
+        return {
+            "reply": f"⚠️ API error: {str(e)}",
+            "conversation_history": session["conversation_history"]
+        }
+    except Exception as e:
+        logger.error(f"❌ Image chat error: {e}")
+        return {
+            "reply": f"⚠️ Error: {str(e)}",
+            "conversation_history": session["conversation_history"]
+        }
+
+
+async def get_session_info(session_id: str) -> Dict:
+    """
+    Get information about an image chat session.
+    """
+    if session_id not in image_chat_sessions:
+        return None
+    
+    session = image_chat_sessions[session_id]
+    return {
+        "session_id": session_id,
+        "filename": session["filename"],
+        "image_info": session["image_info"],
+        "message_count": len(session["conversation_history"]),
+        "created_at": session["created_at"]
+    }
+
+
+async def delete_session(session_id: str) -> bool:
+    """
+    Delete an image chat session.
+    """
+    if session_id in image_chat_sessions:
+        del image_chat_sessions[session_id]
+        logger.info(f"🗑️ Deleted image chat session {session_id}")
+        return True
+    return False

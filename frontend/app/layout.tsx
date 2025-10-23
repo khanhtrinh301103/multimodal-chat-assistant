@@ -1,12 +1,11 @@
+// frontend/app/layout.tsx (MODIFY)
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
 import './globals.css';
-
-const inter = Inter({ subsets: ['latin'] });
+import { AuthProvider } from '@/components/Auth/AuthProvider';
 
 export const metadata: Metadata = {
   title: 'Multi-Modal Chat Assistant',
-  description: 'Text, image, and CSV-based AI chat application',
+  description: 'Text conversations, image analysis, and CSV data insights',
 };
 
 export default function RootLayout({
@@ -16,7 +15,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>{children}</body>
+      <body>
+        <AuthProvider>
+          {children}
+        </AuthProvider>
+      </body>
     </html>
   );
 }
